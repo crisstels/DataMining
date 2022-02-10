@@ -2,13 +2,11 @@ import sqlite3
 import math
 import random
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 ####### todos
-# verkauf2019 up 0,2x
-# verkauf2020 down -0,01x
-# verkauf2021 up 0,1x
-# alles in einer grapik, jeweils eigene tabelle mit standardabweichung und mittelwert
+# jeweils eigene tabelle mit standardabweichung und mittelwert
 # große abweichungen von der standardabweichung herausnehmen
 # in peaks reinzoomen
 # trends erkennen
@@ -73,10 +71,8 @@ def generate_data(cursor, sqliteConnection):
     print("finished generating data")
 
 
-# fetch data
-def fetch_data(cursor, sqliteConnection):
-    print("fetch data from...")
-    table_name = get_table_name()
+# fetches whole data set from a sales table
+def fetch_data(cursor, sqliteConnection, table_name):
     sqlite_select_query = f'select * From {table_name};'
     cursor.execute(sqlite_select_query)
     record = cursor.fetchall()
@@ -141,16 +137,44 @@ def plot_all_tables(cursor, sqliteConnection):
     plt.show()
 
 
-# get mean from sales table
-# def get_mean(sqliteConnection):
-#     data = pd.read_sql("Select * From verkauf2020", con=sqliteConnection)
-#     mean = data["sales"].mean()
-#     print("mean: ", mean)
+# plots a sales table and their mean
+def plot_table_mean(cursor, sqliteConnection, table_name):
+    select_query = f'Select day from {table_name};'
+    cursor.execute(select_query)
+    sales_x = cursor.fetchall()
+    select_query = f'Select sales from {table_name};'
+    cursor.execute(select_query)
+    sales_y = cursor.fetchall()
+    mean = get_mean(sqliteConnection, table_name)
 
+    plt.plot(sales_x, sales_y, label='sales2019')
+    plt.axhline(mean, label='mean', color='r')
+    plt.xlabel('day')
+    plt.ylabel('sales')
+    plt.title('Sales from 2019 and their mean')
+    plt.legend()
+    plt.show()
+
+
+# get mean from sales table
+def get_mean(sqliteConnection, table_name):
+    data = pd.read_sql(f"Select sales From {table_name}", con=sqliteConnection)
+    mean = data["sales"].mean()
+    print("mean: ", mean)
+    return mean
+
+# calculate standard deviation
+def get_standard_deviation (sqliteConnection, table_name):
+    data = pd.read_sql(f"Select sales From {table_name}", con=sqliteConnection)
+    st = data["sales"].std()
+    print("standard deviation: ", st)
 
 cursor, sqliteConnection = database_connection()
 # generate_data(cursor, sqliteConnection)
 # record = fetch_data(cursor, sqliteConnection)
 # plot_single_table(cursor, sqliteConnection)
-plot_all_tables(cursor, sqliteConnection)
+# plot_all_tables(cursor, sqliteConnection)
+get_mean(sqliteConnection, 'verkauf2019')
+get_standard_deviation(sqliteConnection, "verkauf2019")
+plot_table_mean(cursor, sqliteConnection, 'verkauf2019')
 close_connection(cursor, sqliteConnection)

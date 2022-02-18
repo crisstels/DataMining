@@ -33,51 +33,74 @@ def get_table_name():
 
 # generate sales data
 def generate_data(cursor, sqliteConnection):
-    print("Generate data for")
-    table_name = get_table_name()
-
-    for i in range(1, 365):
-        # valentines day
-        if 38 <= i <= 42:
-            rand_num = random.randint(100, 120)
-            sinus_result = 0.1 * i + rand_num * math.sin((i + 80) * 16 * math.pi / 365) + 200
-        # summer sale
-        elif 182 <= i <= 235:
-            rand_num = random.randint(80, 85)
-            sinus_result = 0.1 * i + rand_num * math.sin((i + 80) * 16 * math.pi / 365) + 50
-        # Black Friday
-        elif 300 <= i <= 307:
-            rand_num = random.randint(100, 120)
-            sinus_result = 0.1 * i + rand_num * math.sin((i + 80) * 16 * math.pi / 365) + 50
-        # christmas
-        elif 335 <= i <= 356:
-            rand_num = random.randint(80, 90)
-            sinus_result = 0.1 * i + rand_num * math.sin((i + 80) * 16 * math.pi / 365) + 50
-        # end of the year
-        elif 357 <= i <= 364:
-            rand_num = round(random.uniform(0, 5), 2)
-            sinus_result = 0.1 * i + rand_num * math.sin((i + 80) * 16 * math.pi / 365) + 50
-        else:
-            sinus_result = 0.1 * i + 50 * math.sin((i + 80) * 16 * math.pi / 365) + 50
-
-        # Insert data into database
+    print("Enter years for generating data")
+    years = int(input())
+    new_years_sale_number = 0
+    for j in range(0, years):
+        print("Generate data for")
+        table_name = get_table_name()
+        rand_increase_number = round(random.uniform(0.1, 0.5), 2)
         try:
-            sqlite_insert_query = f'Insert Into {table_name} (day, sales) Values ({i}, {round(sinus_result, 2)});'
-            cursor.execute(sqlite_insert_query)
-            sqliteConnection.commit()
+            drop_table = f'DROP TABLE IF EXISTS {table_name};'
+            cursor.execute(drop_table)
+            create_table = f'CREATE TABLE {table_name} (day int, sales decimal);'
+            cursor.execute(create_table)
         except sqlite3.Error as error:
-            print("Error while inserting data: ", error)
+            print('Error while creating your tables...', error)
+
+        for i in range(1, 366):
+            # valentines day
+            if 38 <= i <= 42:
+                rand_num = random.randint(100, 120)
+                sinus_result = 0.1 * i + rand_num * math.sin((i + 80) * 16 * math.pi / 365) + 200
+            # summer sale
+            elif 182 <= i <= 235:
+                rand_num = random.randint(80, 85)
+                sinus_result = 0.1 * i + rand_num * math.sin((i + 80) * 16 * math.pi / 365) + 50
+            # Black Friday
+            elif 300 <= i <= 307:
+                rand_num = random.randint(100, 120)
+                sinus_result = 0.1 * i + rand_num * math.sin((i + 80) * 16 * math.pi / 365) + 50
+            # christmas
+            elif 335 <= i <= 356:
+                rand_num = random.randint(80, 90)
+                sinus_result = 0.1 * i + rand_num * math.sin((i + 80) * 16 * math.pi / 365) + 50
+            # end of the year
+            elif 357 <= i <= 364:
+                rand_num = round(random.uniform(0, 5), 2)
+                sinus_result = 0.1 * i + rand_num * math.sin((i + 80) * 16 * math.pi / 365) + 50
+            else:
+                sinus_result = 0.1 * i + 50 * math.sin((i + 80) * 16 * math.pi / 365) + 50
+
+            # Insert data into database
+            try:
+                sqlite_insert_query = f'Insert Into {table_name} (day, sales) Values ({i}, {round(sinus_result, 2)});'
+                cursor.execute(sqlite_insert_query)
+                sqliteConnection.commit()
+            except sqlite3.Error as error:
+                print("Error while inserting data: ", error)
+
+        record = fetch_last_sale(cursor, table_name)
+        new_years_sale_number = int(record[0][1])
 
     print("finished generating data")
 
 
 # fetches whole data set from a sales table
-def fetch_data(cursor, sqliteConnection, table_name):
+def fetch_data(cursor,table_name):
     sqlite_select_query = f'select * From {table_name};'
     cursor.execute(sqlite_select_query)
     record = cursor.fetchall()
+    print(int(record[0][1]))
     return record
 
+# fetches last record
+def fetch_last_sale(cursor, table_name):
+    sqlite_select_query = f'select * From {table_name} where day=364;'
+    cursor.execute(sqlite_select_query)
+    record = cursor.fetchall()
+    print(int(record[0][1]))
+    return record
 
 # close all connections
 def close_connection(cursor, sqliteConnection):
@@ -146,12 +169,15 @@ def plot_table_mean(cursor, sqliteConnection, table_name):
     cursor.execute(select_query)
     sales_y = cursor.fetchall()
     mean = get_mean(sqliteConnection, table_name)
+    std = get_standard_deviation(sqliteConnection, table_name)
 
-    plt.plot(sales_x, sales_y, label='sales2019')
+    plt.plot(sales_x, sales_y, label=f'{table_name}')
     plt.axhline(mean, label='mean', color='r')
+    plt.axhline(std + mean, label='deviation', color='g')
+    plt.axhline(mean - std, color='g')
     plt.xlabel('day')
     plt.ylabel('sales')
-    plt.title('Sales from 2019 and their mean')
+    plt.title('Sales from 2020 with mean and standard deviation')
     plt.legend()
     plt.show()
 
@@ -168,13 +194,18 @@ def get_standard_deviation (sqliteConnection, table_name):
     data = pd.read_sql(f"Select sales From {table_name}", con=sqliteConnection)
     st = data["sales"].std()
     print("standard deviation: ", st)
+    return st
 
+# find sth unusual
+def get_peaks(sqlliteConnection, table_name):
+    print("hello")
 cursor, sqliteConnection = database_connection()
-# generate_data(cursor, sqliteConnection)
-# record = fetch_data(cursor, sqliteConnection)
+generate_data(cursor, sqliteConnection)
+# table_name = get_table_name()
+# record = fetch_data(cursor, sqliteConnection, table_name)
 # plot_single_table(cursor, sqliteConnection)
-# plot_all_tables(cursor, sqliteConnection)
-get_mean(sqliteConnection, 'verkauf2019')
-get_standard_deviation(sqliteConnection, "verkauf2019")
-plot_table_mean(cursor, sqliteConnection, 'verkauf2019')
+plot_all_tables(cursor, sqliteConnection)
+# get_mean(sqliteConnection, 'verkauf2020')
+# get_standard_deviation(sqliteConnection, "verkauf2020")
+# plot_table_mean(cursor, sqliteConnection, 'verkauf2020')
 close_connection(cursor, sqliteConnection)

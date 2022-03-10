@@ -4,14 +4,6 @@ import random
 import matplotlib.pyplot as plt
 import pandas as pd
 
-
-####### todos
-# jeweils eigene tabelle mit standardabweichung und mittelwert
-# große abweichungen von der standardabweichung herausnehmen
-# in peaks reinzoomen
-# trends erkennen
-#######
-
 # connect to a sqlite database
 def database_connection():
     try:
@@ -91,7 +83,8 @@ def fetch_data(cursor,table_name):
     sqlite_select_query = f'select * From {table_name};'
     cursor.execute(sqlite_select_query)
     record = cursor.fetchall()
-    print(int(record[0][1]))
+    print(record)
+    print(record[1][1])
     return record
 
 # fetches last record
@@ -173,7 +166,7 @@ def plot_table_mean(cursor, sqliteConnection, table_name):
 
     plt.plot(sales_x, sales_y, label=f'{table_name}')
     plt.axhline(mean, label='mean', color='r')
-    plt.axhline(std + mean, label='deviation', color='g')
+    plt.axhline(std + mean, label='standard deviation', color='g')
     plt.axhline(mean - std, color='g')
     plt.xlabel('day')
     plt.ylabel('sales')
@@ -197,15 +190,32 @@ def get_standard_deviation (sqliteConnection, table_name):
     return st
 
 # find sth unusual
-def get_peaks(sqlliteConnection, table_name):
-    print("hello")
+def get_peaks(sqlliteConnection, cursor):
+    print("looking for peaks in ... ")
+    table_name = get_table_name()
+    mean = get_mean(sqliteConnection, table_name)
+    std = get_standard_deviation(sqliteConnection, table_name)
+    sales_record = fetch_data(cursor, table_name)
+    print("mean + std: ", mean+std)
+    print("mean - std: ", mean-std)
+    upper_limit = mean + std
+    lower_limit = mean - std
+
+    for data in sales_record:
+        if data[1] > upper_limit or data[1] < lower_limit:
+            print("Peak found at day: ", data[0], " with a sale number of: ", data[1])
+
+
+
 cursor, sqliteConnection = database_connection()
-generate_data(cursor, sqliteConnection)
+fetch_data(cursor, "Verkauf2020")
+get_peaks(sqliteConnection, cursor)
+# generate_data(cursor, sqliteConnection)
 # table_name = get_table_name()
 # record = fetch_data(cursor, sqliteConnection, table_name)
 # plot_single_table(cursor, sqliteConnection)
-plot_all_tables(cursor, sqliteConnection)
+# plot_all_tables(cursor, sqliteConnection)
 # get_mean(sqliteConnection, 'verkauf2020')
 # get_standard_deviation(sqliteConnection, "verkauf2020")
-# plot_table_mean(cursor, sqliteConnection, 'verkauf2020')
+plot_table_mean(cursor, sqliteConnection, 'verkauf2020')
 close_connection(cursor, sqliteConnection)

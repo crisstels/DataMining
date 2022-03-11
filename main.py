@@ -3,6 +3,15 @@ import math
 import random
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
+
+
+####### todos
+# jeweils eigene tabelle mit standardabweichung und mittelwert
+# große abweichungen von der standardabweichung herausnehmen
+# in peaks reinzoomen
+# trends erkennen
+#######
 
 # connect to a sqlite database
 def database_connection():
@@ -161,10 +170,12 @@ def plot_table_mean(cursor, sqliteConnection, table_name):
     select_query = f'Select sales from {table_name};'
     cursor.execute(select_query)
     sales_y = cursor.fetchall()
+    sales_x_array = np.array(sales_x)
     mean = get_mean(sqliteConnection, table_name)
     std = get_standard_deviation(sqliteConnection, table_name)
 
     plt.plot(sales_x, sales_y, label=f'{table_name}')
+    plt.plot(sales_x, sales_x_array * 0.1 + 75, label='linear gradient')
     plt.axhline(mean, label='mean', color='r')
     plt.axhline(std + mean, label='standard deviation', color='g')
     plt.axhline(mean - std, color='g')
@@ -209,7 +220,7 @@ def get_peaks(sqlliteConnection, cursor):
 
 cursor, sqliteConnection = database_connection()
 fetch_data(cursor, "Verkauf2020")
-get_peaks(sqliteConnection, cursor)
+# get_peaks(sqliteConnection, cursor)
 # generate_data(cursor, sqliteConnection)
 # table_name = get_table_name()
 # record = fetch_data(cursor, sqliteConnection, table_name)
